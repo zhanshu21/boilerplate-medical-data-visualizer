@@ -4,31 +4,43 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # 1
+# df = pd.read_csv('medical_examination.csv', index_col=0)
 df = pd.read_csv('medical_examination.csv')
 
 # 2
-df['overweight'] = None
+df['bmi'] = df['weight'] / (df['height']/100)**2 
+df['overweight'] = (df['bmi'] > 25).astype(int)
+df.drop('bmi', axis=1, inplace=True)
 
 # 3
+# df['cholesterol'] = (df['cholesterol'] > 1).astype(int) ## another mothod
+df['cholesterol'] = df['cholesterol'].apply(lambda x: 0 if x == 1 else 1)
+df.loc[df['gluc'] == 1, 'gluc'] = 0
+df.loc[df['gluc'] > 1, 'gluc'] = 1
 
-
-# 4
+# 4 Draw the Categorical Plot in the draw_cat_plot function
 def draw_cat_plot():
     # 5
-    df_cat = None
+    df_cat = pd.melt(df,id_vars=['cardio'], value_vars=['cholesterol','gluc', 'smoke', 'alco', 'active', 'overweight'])
 
 
-    # 6
-    df_cat = None
-    
+    6
+    cat = df_cat.groupby(['cardio','variable','value'])
+    df_cat = cat.size().reset_index(name='total')
 
-    # 7
-
-
+    7
+    cat_plot = sns.catplot(
+        x='variable',
+        y= 'total', 
+        hue='value', 
+        col='cardio', 
+        data=df_cat, 
+        kind='bar')
 
     # 8
-    fig = None
-
+    # simpler way
+    # fig = sns.catplot(data=df_cat, kind="count",  x="variable", hue="value", col="cardio")
+    fig = cat_plot.fig
 
     # 9
     fig.savefig('catplot.png')
@@ -38,22 +50,25 @@ def draw_cat_plot():
 # 10
 def draw_heat_map():
     # 11
-    df_heat = None
-
+    dias_mask = (df['ap_lo'] <= df['ap_hi'])
+    height_mask = (df['height'] >= df['height'].quantile(0.025)) & (df['height'] <= df['height'].quantile(0.975))
+    weight_mask = (df['weight'] >= df['weight'].quantile(0.025)) & (df['weight'] <= df['weight'].quantile(0.975))
+    mask = height_mask & weight_mask & dias_mask
+    df_heat = df[mask]
+    
+    # df_heat = df[mask].reset_index(drop=True)
     # 12
-    corr = None
+    corr = df_heat.corr()
 
     # 13
-    mask = None
-
-
+    mask = np.triu(corr)
 
     # 14
-    fig, ax = None
+    fig, ax = plt.subplots(figsize=(16, 10))
 
     # 15
-
-
+    # camp = 'coolwarm'
+    ax = sns.heatmap(mask=mask, data=corr, annot=True, fmt='.1f', vmax=0.5, vmin=0)
 
     # 16
     fig.savefig('heatmap.png')
